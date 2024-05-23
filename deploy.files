@@ -1,0 +1,6 @@
+dist/
+main.py
+package.json
+plugin.json
+README.md
+LICENSE
