@@ -1,18 +1,16 @@
 {
-  "name": "FlatpakUpdater",
-  "author": "0xD34D",
+  "name": "Auto Update",
+  "author": "Akaza Renn",
   "flags": [
     "root"
   ],
   "publish": {
     "tags": [
-      "flatpak",
-      "flatpaks",
       "root",
       "update",
       "updater"
     ],
-    "description": "Update flatpaks from the steam client.",
+    "description": "Update the steam client on a scheduled basis.",
     "image": "https://i.imgur.com/9FfPN1a.png"
   }
 }
