@@ -17,6 +17,7 @@ import { FaBuffer } from "react-icons/fa";
 import { FlatpakInfo } from "./FlatpakInfo";
 import { CMsgSystemUpdateState } from "../protobuf/build/steammessages_client_objects_pb";
 import { EUpdaterState } from "../protobuf/build/enums_pb";
+import { Cron } from 'croner';
 
 type FlatpaksDictionary = {
     [key: string]: FlatpakInfo
@@ -28,7 +29,7 @@ enum UpdateCheckerState {
 }
 
 // Global variables
-var task: any = null;
+var schedule: any = null;
 var updateStateChangeRegistration: any = null;
 
 var paksToUpdate: FlatpaksDictionary = {};
@@ -152,19 +153,23 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
 };
 
 function unregisterUpdateStateChangeRegistration(): void {
-    if (updateStateChangeRegistration) {
-        updateStateChangeRegistration.unregister();
-    }
+        updateStateChangeRegistration?.unregister();
+        updateStateChangeRegistration = null;
 }
 
 function checkForUpdates(): void {
+    if (updateStateChangeRegistration) {
+        console.log("An update is in progress, skipping...");
+        return;
+    }
+
     console.log("Checking for updates...");
-    // updateStateChangeRegistration = SteamClient.Updates.RegisterForUpdateStateChanges(updateStateChangeHandler);
-    // SteamClient.Updates.CheckForUpdates().then((_) => {
-    //     console.log("Got updates");
-    // }).catch((_) => {
-    //     unregisterUpdateStateChangeRegistration();
-    // })
+    updateStateChangeRegistration = SteamClient.Updates.RegisterForUpdateStateChanges(updateStateChangeHandler);
+    SteamClient.Updates.CheckForUpdates().then((_) => {
+        console.log("Got updates");
+    }).catch((_) => {
+        unregisterUpdateStateChangeRegistration();
+    })
 };
 
 function updateStateChangeHandler(protoMsg: Uint8Array): void {
@@ -179,19 +184,19 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
     switch (updateState.state) {
         case EUpdaterState.K_EUPDATERSTATE_AVAILABLE:
             console.log("Updates available, applying...");
-            // Not sure what 'CAI=' means but it works...
-            SteamClient.Updates.ApplyUpdates('CAI=');
+            // "CAI=" comes from the debugger, not sure what it means but works...
+            SteamClient.Updates.ApplyUpdates("CAI=");
             break;
         case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING:
             if (updateState.supportsOsUpdates) {
-                console.log("System restart pending, restarting...");
+                console.log("Pending system restart, restarting...");
                 SteamClient.System.RestartPC();
             } else {
                 console.log("Invalid state, system restart available but OS updates are unsupported...");
             }
             break;
         case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
-            console.log("Client restart pending, restarting...");
+            console.log("Pending client restart, restarting...");
             SteamClient.User.StartRestart();
             break;
         case EUpdaterState.K_EUPDATERSTATE_CHECKING:
@@ -204,9 +209,14 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
     }
 }
 
+function reschedule(cronExpression: string): void {
+    schedule?.stop();
+    schedule = Cron(cronExpression, checkForUpdates);
+}
+
 export default definePlugin((serverApi: ServerAPI) => {
     PyInterop.setServer(serverApi);
-    // task = cron.schedule("* 18 * * * a", checkForUpdates);
+    reschedule("0 4 * * *");
 
     return {
         title: <div className={staticClasses.Title}>Auto Update</div>,
@@ -214,9 +224,7 @@ export default definePlugin((serverApi: ServerAPI) => {
         icon: <FaBuffer />,
         onDismount() {
             unregisterUpdateStateChangeRegistration();
-            if (task) {
-                task.stop();
-            }
+            schedule?.stop();
         },
     };
 });
