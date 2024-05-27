@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from urllib.request import urlopen, urlretrieve
-from subprocess import run
+from subprocess import run, DEVNULL
 import json
 import tempfile
 from pathlib import Path
@@ -37,7 +37,7 @@ def main():
         raise Exception(f'{output_dir} exists and is not a directory')
     for protoc_command in protoc_commands:
         print(f'Running command:\n\t{protoc_command}')
-        run(protoc_command, shell=True)
+        run(protoc_command, shell=True, stderr=DEVNULL)
 
 def download_protoc():
     data = json.loads(urlopen(protoc_release_url).read())

@@ -17,7 +17,7 @@ import { FaBuffer } from "react-icons/fa";
 import { FlatpakInfo } from "./FlatpakInfo";
 import { CMsgSystemUpdateState } from "../protobuf/build/steammessages_client_objects_pb";
 import { EUpdaterState } from "../protobuf/build/enums_pb";
-import { Cron } from 'croner';
+import { Cron } from "croner";
 
 type FlatpaksDictionary = {
     [key: string]: FlatpakInfo
@@ -30,6 +30,7 @@ enum UpdateCheckerState {
 
 // Global variables
 var schedule: any = null;
+var updateTimeout: any = null;
 var updateStateChangeRegistration: any = null;
 
 var paksToUpdate: FlatpaksDictionary = {};
@@ -153,8 +154,10 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
 };
 
 function unregisterUpdateStateChangeRegistration(): void {
-        updateStateChangeRegistration?.unregister();
-        updateStateChangeRegistration = null;
+    clearTimeout(updateTimeout);
+    updateTimeout = null;
+    updateStateChangeRegistration?.unregister();
+    updateStateChangeRegistration = null;
 }
 
 function checkForUpdates(): void {
@@ -165,9 +168,10 @@ function checkForUpdates(): void {
 
     console.log("Checking for updates...");
     updateStateChangeRegistration = SteamClient.Updates.RegisterForUpdateStateChanges(updateStateChangeHandler);
-    SteamClient.Updates.CheckForUpdates().then((_) => {
-        console.log("Got updates");
-    }).catch((_) => {
+    // 1 hour timeout for updating, terminate gracefully if it exceeds that time
+    updateTimeout = setTimeout(unregisterUpdateStateChangeRegistration, 60 * 60 * 1000);
+    SteamClient.Updates.CheckForUpdates().catch((e: any) => {
+        console.log("Failed to check for updates: " + e);
         unregisterUpdateStateChangeRegistration();
     })
 };
@@ -176,7 +180,7 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
     try {
         var updateState = CMsgSystemUpdateState.deserializeBinary(protoMsg).toObject();
     } catch (e) {
-        console.log(e);
+        console.log("Failed to parse update state: " + e);
         unregisterUpdateStateChangeRegistration();
         return;
     }
@@ -193,6 +197,7 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
                 SteamClient.System.RestartPC();
             } else {
                 console.log("Invalid state, system restart available but OS updates are unsupported...");
+                unregisterUpdateStateChangeRegistration();
             }
             break;
         case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
