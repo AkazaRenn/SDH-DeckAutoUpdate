@@ -11,7 +11,7 @@ import {
 } from "decky-frontend-lib";
 import { PyInterop } from "./PyInterop";
 import { useEffect, useState, VFC } from "react";
-import { FaBuffer } from "react-icons/fa";
+import { FaRegArrowAltCircleUp } from "react-icons/fa";
 import { CMsgSystemUpdateState } from "../protobuf/build/steammessages_client_objects_pb";
 import { EUpdaterState } from "../protobuf/build/enums_pb";
 import { Cron } from "croner";
@@ -134,7 +134,7 @@ export default definePlugin((serverApi: ServerAPI) => {
     return {
         title: <div className={staticClasses.Title}>Auto Update</div>,
         content: <Content serverAPI={serverApi} />,
-        icon: <FaBuffer />,
+        icon: <FaRegArrowAltCircleUp />,
         onDismount() {
             unregisterUpdateStateChangeRegistration();
             schedule?.stop();
