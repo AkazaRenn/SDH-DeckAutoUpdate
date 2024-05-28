@@ -22,7 +22,7 @@ var updateTimeout: any = null;
 var updateStateChangeRegistration: any = null;
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
-    const [cronText, setCronText] = useState<string | undefined>("Loading...");
+    const [cronText, setCronText] = useState("Add");
     var inputText = "";
 
     useEffect(() => {
@@ -41,7 +41,8 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
                         onOK={() => updateSchedule(inputText)}>
                         <TextField
                             defaultValue={cronText}
-                            onChange={(e) => inputText = e.target.value} />
+                            onChange={(e) => inputText = e.target.value}
+                            onBlur={(e) => inputText = e.target.value} />
                     </ConfirmModal>
                 );
             }}>
@@ -51,12 +52,13 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
     );
 };
 
-function updateSchedule(cronExpression: string, fromSettings: boolean = false): void {
-    if (!fromSettings) {
+function updateSchedule(cronExpression: string, updateSettings: boolean = true): void {
+    if (updateSettings) {
         PyInterop.setCron(cronExpression);
     }
 
     schedule?.stop();
+    schedule = null;
     try {
         schedule = Cron(cronExpression, checkForUpdates);
     } catch (e) {
@@ -128,7 +130,7 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
 export default definePlugin((serverApi: ServerAPI) => {
     PyInterop.setServer(serverApi);
     PyInterop.getCron().then(response => {
-        updateSchedule(response.result, true);
+        updateSchedule(response.result, false);
     })
 
     return {
