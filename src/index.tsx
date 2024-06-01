@@ -6,11 +6,14 @@ import {
     staticClasses,
     ButtonItem,
     ConfirmModal,
+    PanelSection,
+    PanelSectionRow,
     ServerAPI,
+    SliderField,
     TextField,
 } from "decky-frontend-lib";
 import { PyInterop } from "./PyInterop";
-import { useEffect, useState, VFC } from "react";
+import { useEffect, useRef, useState, VFC } from "react";
 import { FaRegArrowAltCircleUp } from "react-icons/fa";
 import { CMsgSystemUpdateState } from "../protobuf/build/steammessages_client_objects_pb";
 import { EUpdaterState } from "../protobuf/build/enums_pb";
@@ -22,37 +25,78 @@ var updateTimeout: any = null;
 var updateStateChangeRegistration: any = null;
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
-    const [cronText, setCronText] = useState("Add");
-    var inputText = "";
+    const initializaing = useRef(true);
+
+    var cronText = "";
+    const [cronText_Display, setCronText_Display] = useState(cronText);
+    const [minBattery_Display, setMinBattery_Display] = useState(-1);
 
     useEffect(() => {
-        setCronText(schedule?.getPattern());
+        if (initializaing.current) {
+            initializaing.current = false;
+            PyInterop.getCron().then(response => {
+                setCronText_Display(response);
+            })
+            PyInterop.getMinBattery().then(response => {
+                setMinBattery_Display(response);
+            })
+        }
     });
 
     return (
-        <div style={{ display: "flex", justifyContent: "center" }}>
-        <ButtonItem
-            bottomSeparator="none"
-            onClick={() => {
-                showModal(
-                    <ConfirmModal
-                        strTitle="Update Schedule"
-                        strDescription="Enter the cron expression, put anything invalid or leave it empty to disable"
-                        onOK={() => updateSchedule(inputText)}>
-                        <TextField
-                            defaultValue={cronText}
-                            onChange={(e) => inputText = e.target.value}
-                            onBlur={(e) => inputText = e.target.value} />
-                    </ConfirmModal>
-                );
-            }}>
-            {cronText}
-        </ButtonItem>
+        <div>
+            <PanelSection>
+                <PanelSectionRow>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                        <ButtonItem
+                            bottomSeparator="none"
+                            onClick={() => {
+                                showModal(
+                                    <ConfirmModal
+                                        strTitle="Update Schedule"
+                                        strDescription="Enter the cron expression, put anything invalid or leave it empty to disable"
+                                        onOK={() => {
+                                            updateSchedule(cronText);
+                                            setCronText_Display(cronText);
+                                        }}>
+                                        <TextField
+                                            defaultValue={cronText_Display}
+                                            onChange={(e) => cronText = e.target.value}
+                                            onBlur={(e) => cronText = e.target.value} />
+                                    </ConfirmModal>
+                                );
+                            }}>
+                            {cronText_Display ? cronText_Display : "Add"}
+                        </ButtonItem>
+                    </div>
+                </PanelSectionRow>
+                <PanelSectionRow>
+                    <SliderField
+                        bottomSeparator="none"
+                        label={"Min Update Battery"}
+                        min={0}
+                        max={100}
+                        value={Math.max(minBattery_Display, 0)}
+                        valueSuffix={"%"}
+                        showValue={true}
+                        onChange={(value) => {
+                            setMinBattery_Display(value);
+                            PyInterop.setMinBattery(value);
+                        }}
+                        step={5}
+                        notchCount={5}
+                        notchTicksVisible={false}
+                    />
+                </PanelSectionRow>
+            </PanelSection>
         </div>
     );
 };
 
-function updateSchedule(cronExpression: string, updateSettings: boolean = true): void {
+function updateSchedule(cronExpression: string,
+                        updateSettings: boolean = true,
+                        logError: boolean = true
+): void {
     if (updateSettings) {
         PyInterop.setCron(cronExpression);
     }
@@ -62,7 +106,9 @@ function updateSchedule(cronExpression: string, updateSettings: boolean = true):
     try {
         schedule = Cron(cronExpression, checkForUpdates);
     } catch (e) {
-        PyInterop.logError("Received invalid cron expression: " + e);
+        if (logError) {
+            PyInterop.logError("Failed to parse cron expression: " + e);
+        }
     }
 }
 
@@ -73,9 +119,12 @@ function unregisterUpdateStateChangeRegistration(): void {
     updateStateChangeRegistration = null;
 }
 
-function checkForUpdates(): void {
+async function checkForUpdates(): Promise<void> {
     if (updateStateChangeRegistration) {
         PyInterop.logInfo("An update is in progress, skipping...");
+        return;
+    } else if ((PyInterop.getBatteryLevel() < PyInterop.getMinBattery()) && (!PyInterop.getIsCharging())) {
+        PyInterop.logInfo("Battery low, skipping...");
         return;
     }
 
@@ -130,7 +179,7 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
 export default definePlugin((serverApi: ServerAPI) => {
     PyInterop.setServer(serverApi);
     PyInterop.getCron().then(response => {
-        updateSchedule(response.result, false);
+        updateSchedule(response, false);
     })
 
     return {
@@ -139,7 +188,7 @@ export default definePlugin((serverApi: ServerAPI) => {
         icon: <FaRegArrowAltCircleUp />,
         onDismount() {
             unregisterUpdateStateChangeRegistration();
-            schedule?.stop();
+            updateSchedule("", false, false);
         },
     };
 });

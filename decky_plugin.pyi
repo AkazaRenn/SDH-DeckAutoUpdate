@@ -50,7 +50,6 @@ Environment variable: `DECKY_USER`.
 e.g.: `deck`
 """
 
-
 DECKY_USER_HOME: str
 """
 The home of the user where decky resides in.
