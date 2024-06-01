@@ -24,6 +24,11 @@ Note: If you are receiving build errors due to an out of date library, you shoul
 pnpm update decky-frontend-lib --latest
 ```
 
+# Plan
+- [ ] Battery level check before restarting 
+- [ ] Count down dialog before restarting 
+- [ ] In-game state check before restarting
+
 # Credits
 * https://github.com/0xD34D/FlatpakUpdater for providing a reference for me to start with this project
 * https://github.com/Outpox/Bluetooth for how to use SteamClient APIs
