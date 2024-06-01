@@ -1,6 +1,6 @@
 {
   "name": "decky-auto-update",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Decky plugin to update the steam client on a scheduled basis",
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",
