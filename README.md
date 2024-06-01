@@ -25,8 +25,8 @@ pnpm update decky-frontend-lib --latest
 ```
 
 # Plan
-- [ ] Battery level check before restarting 
-- [ ] Count down dialog before restarting 
+- [x] Battery level check before restarting
+- [ ] Count down dialog before restarting
 - [ ] In-game state check before restarting
 
 # Credits
