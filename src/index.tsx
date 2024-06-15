@@ -113,6 +113,7 @@ function updateSchedule(cronExpression: string,
     schedule = null;
     try {
         schedule = Cron(cronExpression, checkForUpdates);
+        PyInterop.logInfo("Updated schedule: " + cronExpression);
     } catch (e) {
         if (logError) {
             PyInterop.logError("Failed to parse cron expression: " + e);
