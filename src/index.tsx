@@ -19,6 +19,14 @@ import { CMsgSystemUpdateState } from "../protobuf/build/steammessages_client_ob
 import { EUpdaterState } from "../protobuf/build/enums_pb";
 import { Cron } from "croner";
 
+declare global {
+    interface Window {
+        __TOASTER_INSTANCE: any;
+        settingsStore: any;
+        NotificationStore: any;
+    }
+}
+
 // Global variables
 var schedule: any = null;
 var updateTimeout: any = null;
@@ -126,6 +134,9 @@ async function checkForUpdates(): Promise<void> {
     } else if ((PyInterop.getBatteryLevel() < PyInterop.getMinBattery()) && (!PyInterop.getIsCharging())) {
         PyInterop.logInfo("Battery low, skipping...");
         return;
+    } else if (window.NotificationStore.BIsUserInGame()) {
+        PyInterop.logInfo("In game, skipping...");
+        return;
     }
 
     PyInterop.logInfo("Checking for updates...");
@@ -155,16 +166,27 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
             break;
         case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING:
             if (updateState.supportsOsUpdates) {
-                PyInterop.logInfo("Pending system restart, restarting...");
-                SteamClient.System.RestartPC();
+                if (window.NotificationStore.BIsUserInGame()) {
+                    PyInterop.logWarning("In game, skip restarting...");
+                } else {
+                    PyInterop.logInfo("Pending system restart, restarting...");
+                    SteamClient.System.RestartPC();
+                }
             } else {
                 PyInterop.logWarning("Invalid state, system restart available but OS updates are unsupported...");
-                unregisterUpdateStateChangeRegistration();
             }
+            // If we didn't restart, unregister the handler
+            unregisterUpdateStateChangeRegistration();
             break;
         case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
-            PyInterop.logInfo("Pending client restart, restarting...");
-            SteamClient.User.StartRestart();
+            if (window.NotificationStore.BIsUserInGame()) {
+                PyInterop.logWarning("In game, skip restarting...");
+            } else {
+                PyInterop.logInfo("Pending client restart, restarting...");
+                SteamClient.User.StartRestart();
+            }
+            // If we didn't restart, unregister the handler
+            unregisterUpdateStateChangeRegistration();
             break;
         case EUpdaterState.K_EUPDATERSTATE_CHECKING:
         case EUpdaterState.K_EUPDATERSTATE_APPLYING:

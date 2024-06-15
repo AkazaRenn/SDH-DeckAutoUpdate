@@ -26,8 +26,8 @@ pnpm update decky-frontend-lib --latest
 
 # Plan
 - [x] Battery level check before restarting
+- [x] In-game state check before restarting
 - [ ] Count down dialog before restarting
-- [ ] In-game state check before restarting
 
 # Credits
 * https://github.com/0xD34D/FlatpakUpdater for providing a reference for me to start with this project
