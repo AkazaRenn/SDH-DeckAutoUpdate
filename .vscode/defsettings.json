@@ -5,7 +5,7 @@
     "deckpass"  : "ssap",
     "deckkey"   : "-i ${env:HOME}/.ssh/id_ed25519",
     "deckdir"   : "/home/steam",
-    "pluginname": "Auto Update",
+    "pluginname": "Deck Auto Update",
     "python.analysis.extraPaths": [
         "./py_modules"
     ]

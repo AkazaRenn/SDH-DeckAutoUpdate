@@ -206,7 +206,7 @@ export default definePlugin((serverApi: ServerAPI) => {
     })
 
     return {
-        title: <div className={staticClasses.Title}>Auto Update</div>,
+        title: <div className={staticClasses.Title}>Deck Auto Update</div>,
         content: <Content serverAPI={serverApi} />,
         icon: <FaRegArrowAltCircleUp />,
         onDismount() {

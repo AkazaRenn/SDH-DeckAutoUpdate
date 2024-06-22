@@ -1,5 +1,5 @@
 {
-  "name": "decky-auto-update",
+  "name": "deck-auto-update",
   "version": "0.2.1",
   "description": "A Decky plugin to update the steam client on a scheduled basis",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AkazaRenn/auto-update.git"
+    "url": "git+https://github.com/AkazaRenn/Deck-Auto-Update.git"
   },
   "keywords": [
     "decky",
@@ -24,9 +24,9 @@
   "author": "Renn Akaza <https://github.com/AkazaRenn>",
   "license": "GPL Version 2",
   "bugs": {
-    "url": "https://github.com/AkazaRenn/auto-update/issues"
+    "url": "https://github.com/AkazaRenn/Deck-Auto-Update/issues"
   },
-  "homepage": "hhttps://github.com/AkazaRenn/auto-update#readme",
+  "homepage": "hhttps://github.com/AkazaRenn/Deck-Auto-Update#readme",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^21.1.0",
     "@rollup/plugin-json": "^4.1.0",
