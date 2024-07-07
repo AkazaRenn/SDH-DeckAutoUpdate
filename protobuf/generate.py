@@ -3,16 +3,15 @@
 from urllib.request import urlopen, urlretrieve
 from subprocess import run, DEVNULL
 import json
-import tempfile
 from pathlib import Path
 from zipfile import ZipFile
 
 protoc_release_url = "https://api.github.com/repos/protocolbuffers/protobuf/releases/latest"
+repo_root = Path(__file__).parents[1]
 
-protoc_download_dir = Path(tempfile.gettempdir()) / 'protoc'
+protoc_download_dir = Path(__file__).parent / 'protoc'
 protoc_path = protoc_download_dir / 'bin' / 'protoc'
 
-repo_root = Path(__file__).parents[1]
 output_dir = repo_root / 'protobuf/build'
 proto_dir = repo_root / 'protobuf/Protobufs/steam'
 

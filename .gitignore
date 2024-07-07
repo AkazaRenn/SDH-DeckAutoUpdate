@@ -58,3 +58,4 @@ cli/decky
 
 # Other stuff
 protobuf/build
+protobuf/protoc

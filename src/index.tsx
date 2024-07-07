@@ -21,8 +21,6 @@ import { Cron } from "croner";
 
 declare global {
   interface Window {
-    __TOASTER_INSTANCE: any;
-    settingsStore: any;
     NotificationStore: any;
   }
 }
