@@ -1,15 +1,9 @@
 {
   "name": "Deck Auto Update",
   "author": "Akaza Renn",
-  "flags": [
-    "root"
-  ],
+  "flags": ["root"],
   "publish": {
-    "tags": [
-      "root",
-      "update",
-      "updater"
-    ],
+    "tags": ["root", "update", "updater"],
     "description": "Update the steam client on a scheduled basis.",
     "image": "https://i.imgur.com/0xiL8ul.png"
   }

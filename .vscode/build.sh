@@ -7,5 +7,4 @@ printf "Please input sudo password to proceed.\n"
 
 # printf "\n"
 
-python3 $(pwd)/protobuf/generate.py
 echo $sudopass | sudo $CLI_LOCATION/decky plugin build $(pwd)
