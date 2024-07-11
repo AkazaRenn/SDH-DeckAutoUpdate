@@ -74,7 +74,7 @@
             "detail": "Build decky-plugin-template",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "setup",
+                // "setup",
                 "settingscheck",
                 "cli-build",
             ],

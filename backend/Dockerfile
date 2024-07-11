@@ -4,7 +4,9 @@
 #FROM ghcr.io/steamdeckhomebrew/holo-toolchain-rust:latest
 #FROM ghcr.io/steamdeckhomebrew/holo-toolchain-go:latest
 #FROM ghcr.io/steamdeckhomebrew/holo-base:latest
-FROM docker.io/nikolaik/python-nodejs:latest
 
-# entrypoint.sh should always be located in the backend folder
-ENTRYPOINT [ "/backend/entrypoint.sh" ]
+FROM ghcr.io/steamdeckhomebrew/builder:latest
+ENTRYPOINT [ "/backend/pnpm_install.sh" ]
+
+FROM docker.io/nikolaik/python-nodejs:latest
+ENTRYPOINT [ "/backend/generate_protobuf.sh" ]

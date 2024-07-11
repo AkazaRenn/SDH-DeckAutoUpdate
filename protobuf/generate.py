@@ -28,17 +28,20 @@ protoc_commands = [
 ]
 
 def main():
+    if not output_dir.exists():
+        output_dir.mkdir(exist_ok=True, parents=True)
+    elif not output_dir.is_dir():
+        raise Exception(f'{output_dir} exists and is not a directory')
+    elif list(output_dir.glob('*.js')) and list(output_dir.glob('*.d.ts')):
+        print('Protobuf files already exist, skipping...')
+        return
+
     if not protoc_path.exists():
         print(f'Did not find protoc at {protoc_path}, downloading...')
         download_protoc()
 
     # add exec permission
     protoc_path.chmod(0o755)
-
-    if not output_dir.exists():
-        output_dir.mkdir(exist_ok=True, parents=True)
-    elif not output_dir.is_dir():
-        raise Exception(f'{output_dir} exists and is not a directory')
 
     # protoc-gen-js refuses to run if it's not in $PATH
     env = environ.copy()
