@@ -46,6 +46,7 @@ def main():
     # protoc-gen-js refuses to run if it's not in $PATH
     env = environ.copy()
     env['PATH'] = f'{node_modules_bin}:{env["PATH"]}'
+    run('pnpm install', shell=True, cwd=repo_root, check=True)
     for protoc_command in protoc_commands:
         print(f'Running command:\n\t{protoc_command}')
         run(protoc_command, shell=True, check=True, env=env, stderr=DEVNULL)

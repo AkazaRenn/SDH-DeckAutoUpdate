@@ -5,8 +5,8 @@
 #FROM ghcr.io/steamdeckhomebrew/holo-toolchain-go:latest
 #FROM ghcr.io/steamdeckhomebrew/holo-base:latest
 
-FROM ghcr.io/steamdeckhomebrew/builder:latest
-ENTRYPOINT [ "/backend/pnpm_install.sh" ]
-
 FROM docker.io/nikolaik/python-nodejs:latest
-ENTRYPOINT [ "/backend/generate_protobuf.sh" ]
+
+RUN npm install -g pnpm@8.5.1
+
+ENTRYPOINT [ "/backend/entrypoint.sh" ]
