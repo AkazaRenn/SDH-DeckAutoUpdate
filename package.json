@@ -43,9 +43,7 @@
     "croner": "^8.0.2",
     "decky-frontend-lib": "^3.25.0",
     "google-protobuf": "^3.21.2",
-    "protoc-gen-js": "^3.21.2",
-    "react-icons": "^4.4.0",
-    "ts-protoc-gen": "^0.15.0"
+    "react-icons": "^4.4.0"
   },
   "pnpm": {
     "peerDependencyRules": {

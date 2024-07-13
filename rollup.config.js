@@ -26,6 +26,8 @@ export default defineConfig({
   context: 'window',
   external: ["react", "react-dom", "decky-frontend-lib"],
   output: {
+    name: "Deck Auto Update",
+    extend: true,
     file: "dist/index.js",
     globals: {
       react: "SP_REACT",
@@ -34,5 +36,10 @@ export default defineConfig({
     },
     format: 'iife',
     exports: 'default',
+  },
+  // Suppress eval warnings until protobuf fixes it
+  onwarn(warning, warn) {
+    if (warning.code === 'EVAL') return;
+    warn(warning);
   },
 });

@@ -1,5 +1,3 @@
-/// <reference types="../typings/index.d.ts"/>
-
 import {
   definePlugin,
   showModal,
@@ -12,18 +10,12 @@ import {
   SliderField,
   TextField,
 } from "decky-frontend-lib";
-import { PyInterop } from "./PyInterop";
+import * as interop from "./interop";
 import { useEffect, useRef, useState, VFC } from "react";
 import { FaRegArrowAltCircleUp } from "react-icons/fa";
 import { CMsgSystemUpdateState } from "../backend/protobuf/out/steammessages_client_objects_pb";
 import { EUpdaterState } from "../backend/protobuf/out/enums_pb";
 import { Cron } from "croner";
-
-declare global {
-  interface Window {
-    NotificationStore: any;
-  }
-}
 
 // Global variables
 var schedule: any = null;
@@ -40,10 +32,10 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
   useEffect(() => {
     if (initializaing.current) {
       initializaing.current = false;
-      PyInterop.getCron().then(response => {
+      interop.getCron().then(response => {
         setCronText_Display(response);
       })
-      PyInterop.getMinBattery().then(response => {
+      interop.getMinBattery().then(response => {
         setMinBattery_Display(response);
       })
     }
@@ -87,7 +79,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
             showValue={true}
             onChange={async (value) => {
               setMinBattery_Display(value);
-              await PyInterop.setMinBattery(value);
+              await interop.setMinBattery(value);
             }}
             step={5}
             notchTicksVisible={false}
@@ -103,17 +95,17 @@ function updateSchedule(cronExpression: string,
   logError: boolean = true
 ): void {
   if (updateSettings) {
-    PyInterop.setCron(cronExpression);
+    interop.setCron(cronExpression);
   }
 
   schedule?.stop();
   schedule = null;
   try {
     schedule = Cron(cronExpression, checkForUpdates);
-    PyInterop.logInfo("Cron schedule set to: " + cronExpression);
+    interop.logInfo("Cron schedule set to: " + cronExpression);
   } catch (e) {
     if (logError) {
-      PyInterop.logError("Failed to parse cron expression: " + e);
+      interop.logError("Failed to parse cron expression: " + e);
     }
   }
 }
@@ -127,22 +119,22 @@ function unregisterUpdateStateChangeRegistration(): void {
 
 async function checkForUpdates(): Promise<void> {
   if (updateStateChangeRegistration) {
-    PyInterop.logInfo("An update is in progress, skipping...");
+    interop.logInfo("An update is in progress, skipping...");
     return;
-  } else if ((PyInterop.getBatteryLevel() < PyInterop.getMinBattery()) && (!PyInterop.getIsCharging())) {
-    PyInterop.logInfo("Battery low, skipping...");
+  } else if ((interop.getBatteryLevel() < interop.getMinBattery()) && (!interop.getIsCharging())) {
+    interop.logInfo("Battery low, skipping...");
     return;
   } else if (window.NotificationStore.BIsUserInGame()) {
-    PyInterop.logInfo("In game, skipping...");
+    interop.logInfo("In game, skipping...");
     return;
   }
 
-  PyInterop.logInfo("Checking for updates...");
+  interop.logInfo("Checking for updates...");
   updateStateChangeRegistration = SteamClient.Updates.RegisterForUpdateStateChanges(updateStateChangeHandler);
   // 1 hour timeout for updating, terminate gracefully if it exceeds that time
   updateTimeout = setTimeout(unregisterUpdateStateChangeRegistration, 60 * 60 * 1000);
   SteamClient.Updates.CheckForUpdates().catch((e: any) => {
-    PyInterop.logError("Failed to check for updates: " + e);
+    interop.logError("Failed to check for updates: " + e);
     unregisterUpdateStateChangeRegistration();
   })
 };
@@ -151,36 +143,36 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
   try {
     var updateState = CMsgSystemUpdateState.deserializeBinary(protoMsg).toObject();
   } catch (e) {
-    PyInterop.logError("Failed to parse update state: " + e);
+    interop.logError("Failed to parse update state: " + e);
     unregisterUpdateStateChangeRegistration();
     return;
   }
 
   switch (updateState.state) {
     case EUpdaterState.K_EUPDATERSTATE_AVAILABLE:
-      PyInterop.logInfo("Updates available, applying...");
+      interop.logInfo("Updates available, applying...");
       // "CAI=" comes from the debugger, not sure what it means but works...
       SteamClient.Updates.ApplyUpdates("CAI=");
       break;
     case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING:
       if (updateState.supportsOsUpdates) {
         if (window.NotificationStore.BIsUserInGame()) {
-          PyInterop.logWarning("In game, skip restarting...");
+          interop.logWarning("In game, skip restarting...");
         } else {
-          PyInterop.logInfo("Pending system restart, restarting...");
+          interop.logInfo("Pending system restart, restarting...");
           SteamClient.System.RestartPC();
         }
       } else {
-        PyInterop.logWarning("Invalid state, system restart available but OS updates are unsupported...");
+        interop.logWarning("Invalid state, system restart available but OS updates are unsupported...");
       }
       // If we didn't restart, unregister the handler
       unregisterUpdateStateChangeRegistration();
       break;
     case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
       if (window.NotificationStore.BIsUserInGame()) {
-        PyInterop.logWarning("In game, skip restarting...");
+        interop.logWarning("In game, skip restarting...");
       } else {
-        PyInterop.logInfo("Pending client restart, restarting...");
+        interop.logInfo("Pending client restart, restarting...");
         SteamClient.User.StartRestart();
       }
       // If we didn't restart, unregister the handler
@@ -190,15 +182,15 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
     case EUpdaterState.K_EUPDATERSTATE_APPLYING:
       break;
     default:
-      PyInterop.logInfo("No updates available");
+      interop.logInfo("No updates available");
       unregisterUpdateStateChangeRegistration();
       break;
   }
 }
 
 export default definePlugin((serverApi: ServerAPI) => {
-  PyInterop.setServer(serverApi);
-  PyInterop.getCron().then(response => {
+  interop.setServer(serverApi);
+  interop.getCron().then(response => {
     updateSchedule(response, false);
   })
 

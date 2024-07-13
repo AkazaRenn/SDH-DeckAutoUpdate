@@ -12,4 +12,8 @@ export declare global {
             RestartPC: () => Promise<void>;
         }
     };
+
+    interface Window {
+      NotificationStore: any;
+    }
 }
