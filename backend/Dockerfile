@@ -4,9 +4,8 @@
 #FROM ghcr.io/steamdeckhomebrew/holo-toolchain-rust:latest
 #FROM ghcr.io/steamdeckhomebrew/holo-toolchain-go:latest
 #FROM ghcr.io/steamdeckhomebrew/holo-base:latest
+FROM docker.io/namely/protoc-all:latest
 
-FROM docker.io/nikolaik/python-nodejs:latest
-
-RUN npm install -g pnpm@8.5.1
-
-ENTRYPOINT [ "/backend/entrypoint.sh" ]
+# entrypoint.sh should always be located in the backend folder
+# ENTRYPOINT [ "/backend/entrypoint.sh" ]
+CMD ["-l", "node", "-d", "/backend/protobuf/source/steam", "-o", "/backend/protobuf/out", "--with-typescript"]

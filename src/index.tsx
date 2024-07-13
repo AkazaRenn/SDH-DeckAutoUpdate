@@ -15,8 +15,8 @@ import {
 import { PyInterop } from "./PyInterop";
 import { useEffect, useRef, useState, VFC } from "react";
 import { FaRegArrowAltCircleUp } from "react-icons/fa";
-import { CMsgSystemUpdateState } from "../protobuf/build/steammessages_client_objects_pb";
-import { EUpdaterState } from "../protobuf/build/enums_pb";
+import { CMsgSystemUpdateState } from "../backend/protobuf/out/steammessages_client_objects_pb";
+import { EUpdaterState } from "../backend/protobuf/out/enums_pb";
 import { Cron } from "croner";
 
 declare global {
