@@ -25,8 +25,9 @@ export async function getCron(): Promise<string> {
         return await call<[], string>("get_cron");
     } catch (e) {
         logError("Failed to get cron: " + e);
-        return "";
     }
+
+    return "";
 }
 
 export async function setMinBattery(minBattery: number): Promise<void> {
@@ -39,8 +40,9 @@ export async function getMinBattery(): Promise<number> {
         return await call<[], number>("get_min_battery");
     } catch (e) {
         logError("Failed to get min_battery: " + e);
-        return -1;
     }
+
+    return -1;
 }
 
 export async function getBatteryLevel(): Promise<number> {
@@ -48,8 +50,9 @@ export async function getBatteryLevel(): Promise<number> {
         return await call<[], number>("get_battery_level");
     } catch (e) {
         logError("Failed to get battery_level: " + e);
-        return 101;
     }
+
+    return 101;
 }
 
 export async function getIsCharging(): Promise<boolean> {
@@ -57,6 +60,7 @@ export async function getIsCharging(): Promise<boolean> {
         return await call<[], boolean>("get_is_charging");
     } catch (e) {
         logError("Failed to get is_charging: " + e);
-        return true;
     }
+    
+    return true;
 }
