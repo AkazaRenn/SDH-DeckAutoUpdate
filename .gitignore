@@ -55,7 +55,3 @@ out/*
 cli/
 cli/*
 cli/decky
-
-# Other stuff
-protobuf/build
-protobuf/protoc

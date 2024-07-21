@@ -1,17 +1,15 @@
 import {
   definePlugin,
   showModal,
-  staticClasses,
   ButtonItem,
   ConfirmModal,
   PanelSection,
   PanelSectionRow,
-  ServerAPI,
   SliderField,
   TextField,
-} from "decky-frontend-lib";
+} from "@decky/ui";
 import * as interop from "./interop";
-import { useEffect, useRef, useState, VFC } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaRegArrowAltCircleUp } from "react-icons/fa";
 import { CMsgSystemUpdateState } from "../backend/protobuf/out/steammessages_client_objects_pb";
 import { EUpdaterState } from "../backend/protobuf/out/enums_pb";
@@ -22,7 +20,7 @@ var schedule: any = null;
 var updateTimeout: any = null;
 var updateStateChangeRegistration: any = null;
 
-const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
+function Content() {
   const initializaing = useRef(true);
 
   var cronText = "";
@@ -188,15 +186,14 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
   }
 }
 
-export default definePlugin((serverApi: ServerAPI) => {
-  interop.setServer(serverApi);
+export default definePlugin(() => {
   interop.getCron().then(response => {
     updateSchedule(response, false);
   })
 
   return {
-    title: <div className={staticClasses.Title}>Deck Auto Update</div>,
-    content: <Content serverAPI={serverApi} />,
+    name: "Deck Auto Update",
+    content: <Content />,
     icon: <FaRegArrowAltCircleUp />,
     onDismount() {
       unregisterUpdateStateChangeRegistration();
