@@ -17,7 +17,7 @@ class Plugin:
     async def log_error(self, msg: str):
         decky.logger.error(msg)
 
-    async def log_warn(self, msg: str):
+    async def log_warning(self, msg: str):
         decky.logger.warning(msg)
 
     async def set_cron(self, cron: str):

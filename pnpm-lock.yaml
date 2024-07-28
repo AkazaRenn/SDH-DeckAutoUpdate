@@ -5,8 +5,8 @@ dependencies:
     specifier: ^1.0.5
     version: 1.0.6
   '@decky/ui':
-    specifier: ^4.4.0
-    version: 4.4.0
+    specifier: ^4.6.0
+    version: 4.6.0
   croner:
     specifier: ^8.1.0
     version: 8.1.0
@@ -63,8 +63,8 @@ packages:
       typescript: 5.5.3
     dev: true
 
-  /@decky/ui@4.4.0:
-    resolution: {integrity: sha512-w6hSoEdWQyXdvSk8cv4cGDJQ6/xoRx9LYrdNjTGPPj8hRmBcoRlThgZ+9vchmNsAJuOymwQ5hQXqHN6Y86eoOQ==}
+  /@decky/ui@4.6.0:
+    resolution: {integrity: sha512-hGofSF1VeBxZ6ewA1Fq9iAsg50hxSLcNSsSNWS6N9E5UzdeEhd/1/6PIExHbtnSnMQGJ3lk9FaBBaz6IbG0Mvg==}
     dev: false
 
   /@isaacs/cliui@8.0.2:
