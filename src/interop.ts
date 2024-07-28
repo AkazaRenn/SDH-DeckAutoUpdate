@@ -1,7 +1,7 @@
 import { call } from "@decky/api";
 import log from "./logger";
 
-export async function setCron(cron: string): Promise<void> {
+export async function setCron(cron: string) {
     log.info("Updating cron: " + cron);
     call<[cron: string], void>("set_cron", cron);
 }
@@ -16,7 +16,7 @@ export async function getCron(): Promise<string> {
     return "";
 }
 
-export async function setMinBattery(minBattery: number): Promise<void> {
+export async function setMinBattery(minBattery: number) {
     log.info("Updating min_battery: " + minBattery);
     call<[min_battery: number], void>("set_min_battery", minBattery);
 }
