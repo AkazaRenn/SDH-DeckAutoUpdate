@@ -2,19 +2,23 @@ import { call } from "@decky/api";
 import DeckyLogger from "./deps/logger";
 
 class Logger extends DeckyLogger {
-    async info(message: string) {
-        super.log(message);
-        call<[msg: string], void>("log_info", message);
+    async info(...args: any[]) {
+        super.log(this.now(), ...args);
+        call<[msg: string], void>("log_info", args.join(' '));
     }
 
-    async error(message: string) {
-        super.error(message);
-        call<[msg: string], void>("log_error", message);
+    async error(...args: any[]) {
+        super.error(this.now(), ...args);
+        call<[msg: string], void>("log_error", args.join(' '));
     }
 
-    async warning(message: string) {
-        super.warn(message);
-        call<[msg: string], void>("log_warning", message);
+    async warning(...args: any[]) {
+        super.warn(this.now(), ...args);
+        call<[msg: string], void>("log_warning", args.join(' '));
+    }
+
+    private now(): string {
+        return (new Date).toISOString();
     }
 }
 
