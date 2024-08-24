@@ -3,7 +3,7 @@
   "version": "0.2.1",
   "description": "A Decky plugin to update the steam client on a scheduled basis",
   "type": "module",
-  "packageManager": "pnpm@9.7.0",
+  "packageManager": "pnpm@9.8.0",
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w",
