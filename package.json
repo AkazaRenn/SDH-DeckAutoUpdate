@@ -3,7 +3,7 @@
   "version": "0.2.1",
   "description": "A Decky plugin to update the steam client on a scheduled basis",
   "type": "module",
-  "packageManager": "pnpm@9.8.0",
+  "packageManager": "pnpm@9.9.0",
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w",
@@ -28,20 +28,20 @@
   },
   "homepage": "hhttps://github.com/AkazaRenn/Deck-Auto-Update#readme",
   "devDependencies": {
-    "@decky/rollup": "^1.0.0",
+    "@decky/rollup": "^1.0.1",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "@types/webpack": "^5.28.5",
-    "rollup": "^4.18.0",
-    "typescript": "^5.5.3"
+    "rollup": "^4.21.2",
+    "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@decky/api": "^1.0.5",
-    "@decky/ui": "^4.7.0",
-    "croner": "^8.1.0",
+    "@decky/api": "^1.1.2",
+    "@decky/ui": "^4.7.1",
+    "croner": "^8.1.1",
     "google-protobuf": "^3.21.4",
-    "react-icons": "^5.2.1",
-    "tslib": "^2.6.3"
+    "react-icons": "^5.3.0",
+    "tslib": "^2.7.0"
   },
   "pnpm": {
     "peerDependencyRules": {

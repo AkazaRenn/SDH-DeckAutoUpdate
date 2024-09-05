@@ -1,4 +1,5 @@
 import {
+  beforePatch,
   definePlugin,
   showModal,
   ButtonItem,
@@ -14,10 +15,8 @@ import { useEffect, useRef, useState } from "react";
 import { FaRegArrowAltCircleUp } from "react-icons/fa";
 import { CMsgSystemUpdateState } from "../deps/protobuf/out/steammessages_client_objects_pb";
 import { EUpdaterState } from "../deps/protobuf/out/enums_pb";
-import { Cron } from "croner";
 
 // Global variables
-var schedule: any = null;
 var updateTimeout: any = null;
 var updateStateChangeRegistration: any = null;
 
@@ -53,7 +52,6 @@ function Content() {
                     strTitle="Update Schedule"
                     strDescription="Enter the cron expression, put anything invalid or leave it empty to disable"
                     onOK={() => {
-                      updateSchedule(cronText);
                       setCronText_Display(cronText);
                     }}>
                     <TextField
@@ -89,26 +87,6 @@ function Content() {
   );
 };
 
-function updateSchedule(cronExpression: string,
-  updateSettings: boolean = true,
-  logError: boolean = true
-): void {
-  if (updateSettings) {
-    interop.setCron(cronExpression);
-  }
-
-  schedule?.stop();
-  schedule = null;
-  try {
-    schedule = Cron(cronExpression, checkForUpdates);
-    log.info("Cron schedule set to: " + cronExpression);
-  } catch (e) {
-    if (logError) {
-      log.error("Failed to parse cron expression: " + e);
-    }
-  }
-}
-
 function unregisterUpdateStateChangeRegistration(): void {
   clearTimeout(updateTimeout);
   updateTimeout = null;
@@ -116,81 +94,42 @@ function unregisterUpdateStateChangeRegistration(): void {
   updateStateChangeRegistration = null;
 }
 
-async function checkForUpdates(): Promise<void> {
-  if (updateStateChangeRegistration) {
-    log.info("An update is in progress, skipping...");
-    return;
-  } else if ((interop.getBatteryLevel() < interop.getMinBattery()) && (!interop.getIsCharging())) {
-    log.info("Battery low, skipping...");
-    return;
-  } else if (window.NotificationStore.BIsUserInGame()) {
-    log.info("In game, skipping...");
-    return;
-  }
-
-  log.info("Checking for updates...");
-  updateStateChangeRegistration = SteamClient.Updates.RegisterForUpdateStateChanges(updateStateChangeHandler);
-  // 1 hour timeout for updating, terminate gracefully if it exceeds that time
-  updateTimeout = setTimeout(unregisterUpdateStateChangeRegistration, 60 * 60 * 1000);
-  SteamClient.Updates.CheckForUpdates().catch((e: any) => {
-    log.error("Failed to check for updates: " + e);
-    unregisterUpdateStateChangeRegistration();
-  })
-};
-
 function updateStateChangeHandler(protoMsg: Uint8Array): void {
   try {
     var updateState = CMsgSystemUpdateState.deserializeBinary(protoMsg).toObject();
   } catch (e) {
     log.error("Failed to parse update state: " + e);
-    unregisterUpdateStateChangeRegistration();
     return;
   }
 
-  switch (updateState.state) {
-    case EUpdaterState.K_EUPDATERSTATE_AVAILABLE:
-      log.info("Updates available, applying...");
-      // "CAI=" comes from the debugger, not sure what it means but works...
-      SteamClient.Updates.ApplyUpdates("CAI=");
-      break;
-    case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING:
-      if (updateState.supportsOsUpdates) {
-        if (window.NotificationStore.BIsUserInGame()) {
-          log.warning("In game, skip restarting...");
-        } else {
-          log.info("Pending system restart, restarting...");
-          SteamClient.System.RestartPC();
-        }
-      } else {
-        log.warning("Invalid state, system restart available but OS updates are unsupported...");
-      }
-      // If we didn't restart, unregister the handler
-      unregisterUpdateStateChangeRegistration();
-      break;
-    case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
-      if (window.NotificationStore.BIsUserInGame()) {
-        log.warning("In game, skip restarting...");
-      } else {
-        log.info("Pending client restart, restarting...");
-        SteamClient.User.StartRestart();
-      }
-      // If we didn't restart, unregister the handler
-      unregisterUpdateStateChangeRegistration();
-      break;
-    case EUpdaterState.K_EUPDATERSTATE_CHECKING:
-    case EUpdaterState.K_EUPDATERSTATE_APPLYING:
-      break;
-    default:
-      log.info("No updates available");
-      unregisterUpdateStateChangeRegistration();
-      break;
+  log.info("Update state value: " + updateState.state);
+  if (updateState.state) {
+    log.info("    State: " + EUpdaterStateToString(updateState.state));
+  }
+  console.log(updateState);
+}
+
+function EUpdaterStateToString(state: EUpdaterState): string {
+  switch (state) {
+    case EUpdaterState.K_EUPDATERSTATE_INVALID: return "K_EUPDATERSTATE_INVALID";
+    case EUpdaterState.K_EUPDATERSTATE_UPTODATE: return "K_EUPDATERSTATE_UPTODATE";
+    case EUpdaterState.K_EUPDATERSTATE_CHECKING: return "K_EUPDATERSTATE_CHECKING";
+    case EUpdaterState.K_EUPDATERSTATE_AVAILABLE: return "K_EUPDATERSTATE_AVAILABLE";
+    case EUpdaterState.K_EUPDATERSTATE_APPLYING: return "K_EUPDATERSTATE_APPLYING";
+    case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING: return "K_EUPDATERSTATE_CLIENTRESTARTPENDING";
+    case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING: return "K_EUPDATERSTATE_SYSTEMRESTARTPENDING";
+    case EUpdaterState.K_EUPDATERSTATE_ROLLBACK: return "K_EUPDATERSTATE_ROLLBACK";
+    default: return "UNKNOWN";
   }
 }
 
+// Entry point
+
 export default definePlugin(() => {
-  interop.getCron().then(response => {
-    updateSchedule(response, false);
-  })
+  updateStateChangeRegistration = SteamClient.Updates.RegisterForUpdateStateChanges(updateStateChangeHandler);
+  let patch = beforePatch(SteamClient.Updates, "ApplyUpdates", (inputs: any[]) => {
+    log.info("Updates params:", inputs);
+  });
 
   return {
     name: "Deck Auto Update",
@@ -198,7 +137,7 @@ export default definePlugin(() => {
     icon: <FaRegArrowAltCircleUp />,
     onDismount() {
       unregisterUpdateStateChangeRegistration();
-      updateSchedule("", false, false);
+      patch.unpatch();
     },
   };
 });
