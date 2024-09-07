@@ -150,8 +150,16 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
       applyUpdates(updateState);
       break;
     case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING:
+      handleOsUpdateApplication(updateState);
+      break;
     case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
-      handleUpdateApplicationProgress(updateState);
+      if (readyForUpdate()) {
+        log.info("Pending client restart, restarting...");
+        SteamClient.User.StartRestart();
+      } else {
+        log.info("System not ready for update, skipping...");
+        unregisterUpdateStateChangeRegistration();
+      }
       break;
     case EUpdaterState.K_EUPDATERSTATE_APPLYING:
     case EUpdaterState.K_EUPDATERSTATE_CHECKING:
@@ -163,19 +171,21 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
   }
 }
 
-function applyUpdates(updateState: CMsgSystemUpdateState.AsObject) {
+function applyUpdates(updateState: CMsgSystemUpdateState.AsObject): void {
   var osUpdateAvailable = false;
 
-  for (var checkResult of updateState.updateCheckResultsList) {
-    if (checkResult.available && checkResult.type) {
-      switch (checkResult.type) {
-        case EUpdaterType.K_EUPDATERTYPE_OS:
-        case EUpdaterType.K_EUPDATERTYPE_BIOS:
-        case EUpdaterType.K_EUPDATERTYPE_AGGREGATED:
-          osUpdateAvailable = true;
-          break;
-        default:
-          break;
+  if (updateState.supportsOsUpdates) {
+    for (var checkResult of updateState.updateCheckResultsList) {
+      if (checkResult.available && checkResult.type) {
+        switch (checkResult.type) {
+          case EUpdaterType.K_EUPDATERTYPE_OS:
+          case EUpdaterType.K_EUPDATERTYPE_BIOS:
+          case EUpdaterType.K_EUPDATERTYPE_AGGREGATED:
+            osUpdateAvailable = true;
+            break;
+          default:
+            break;
+        }
       }
     }
   }
@@ -189,20 +199,15 @@ function applyUpdates(updateState: CMsgSystemUpdateState.AsObject) {
   }
 }
 
-function handleUpdateApplicationProgress(updateState: CMsgSystemUpdateState.AsObject) {
+function handleOsUpdateApplication(updateState: CMsgSystemUpdateState.AsObject): void {
   if (!readyForUpdate()) {
     log.info("System not ready for update, skipping...");
     unregisterUpdateStateChangeRegistration();
-  } else if ((updateState.progress?.stageProgress) && (updateState.progress?.stageProgress < 1)) {
-    // Update application in progress
-  } else if ((updateState.progress == undefined) && (updateState.state == EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING)) {
-    log.info("Pending client restart, restarting...");
-    SteamClient.User.StartRestart();
-  } else if ((updateState.state == EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING) && updateState.supportsOsUpdates) {
+  } else if ((updateState.progress?.stageProgress) && (updateState.progress?.stageProgress >= 100)) {
     log.info("Pending system restart, restarting...");
     SteamClient.System.RestartPC();
   } else {
-    log.warning("Invalid state", updateState);
+    // Update application in progress
   }
 }
 
