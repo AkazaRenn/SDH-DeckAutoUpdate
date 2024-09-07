@@ -12,6 +12,7 @@ import * as interop from "./interop";
 import log from "./logger";
 import { useEffect, useRef, useState } from "react";
 import { FaRegArrowAltCircleUp } from "react-icons/fa";
+import { EUpdaterType } from "../deps/protobuf/out/enums_pb";
 import { CMsgSystemUpdateState } from "../deps/protobuf/out/steammessages_client_objects_pb";
 import { EUpdaterState } from "../deps/protobuf/out/enums_pb";
 import { Cron } from "croner";
@@ -120,11 +121,8 @@ async function checkForUpdates(): Promise<void> {
   if (updateStateChangeRegistration) {
     log.info("An update is in progress, skipping...");
     return;
-  } else if ((interop.getBatteryLevel() < interop.getMinBattery()) && (!interop.getIsCharging())) {
-    log.info("Battery low, skipping...");
-    return;
-  } else if (window.NotificationStore.BIsUserInGame()) {
-    log.info("In game, skipping...");
+  } else if (!readyForUpdate()) {
+    log.info("System not ready for update, skipping...");
     return;
   }
 
@@ -149,42 +147,75 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
 
   switch (updateState.state) {
     case EUpdaterState.K_EUPDATERSTATE_AVAILABLE:
-      log.info("Updates available, applying...");
-      // "CAI=" comes from the debugger, not sure what it means but works...
-      SteamClient.Updates.ApplyUpdates("CAI=");
+      applyUpdates(updateState);
       break;
     case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING:
-      if (updateState.supportsOsUpdates) {
-        if (window.NotificationStore.BIsUserInGame()) {
-          log.warning("In game, skip restarting...");
-        } else {
-          log.info("Pending system restart, restarting...");
-          SteamClient.System.RestartPC();
-        }
-      } else {
-        log.warning("Invalid state, system restart available but OS updates are unsupported...");
-      }
-      // If we didn't restart, unregister the handler
-      unregisterUpdateStateChangeRegistration();
-      break;
     case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
-      if (window.NotificationStore.BIsUserInGame()) {
-        log.warning("In game, skip restarting...");
-      } else {
-        log.info("Pending client restart, restarting...");
-        SteamClient.User.StartRestart();
-      }
-      // If we didn't restart, unregister the handler
-      unregisterUpdateStateChangeRegistration();
+    case EUpdaterState.K_EUPDATERSTATE_APPLYING:
+      handleUpdateApplicationProgress(updateState);
       break;
     case EUpdaterState.K_EUPDATERSTATE_CHECKING:
-    case EUpdaterState.K_EUPDATERSTATE_APPLYING:
       break;
     default:
       log.info("No updates available");
       unregisterUpdateStateChangeRegistration();
       break;
   }
+}
+
+function applyUpdates(updateState: CMsgSystemUpdateState.AsObject) {
+  var osUpdateAvailable = false;
+
+  for (var checkResult of updateState.updateCheckResultsList) {
+    if (checkResult.available && checkResult.type) {
+      switch (checkResult.type) {
+        case EUpdaterType.K_EUPDATERTYPE_OS:
+        case EUpdaterType.K_EUPDATERTYPE_BIOS:
+        case EUpdaterType.K_EUPDATERTYPE_AGGREGATED:
+          osUpdateAvailable = true;
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  if (osUpdateAvailable) {
+    log.info("OS update availbale, applying...");
+    SteamClient.Updates.ApplyUpdates("CAI=");
+  } else {
+    log.info("Client update available, applying...");
+    SteamClient.Updates.ApplyUpdates("CAE=");
+  }
+}
+
+function handleUpdateApplicationProgress(updateState: CMsgSystemUpdateState.AsObject) {
+  if (!readyForUpdate()) {
+    log.info("System not ready for update, skipping...");
+    unregisterUpdateStateChangeRegistration();
+  } else if ((updateState.progress?.stageProgress) && (updateState.progress?.stageProgress < 1)) {
+    // Update application in progress
+  } else if ((updateState.progress == undefined) && (updateState.state == EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING)) {
+    log.info("Pending client restart, restarting...");
+    SteamClient.User.StartRestart();
+  } else if ((updateState.state == EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING) && updateState.supportsOsUpdates) {
+    log.info("Pending system restart, restarting...");
+    SteamClient.System.RestartPC();
+  } else {
+    log.warning("Invalid state", updateState);
+  }
+}
+
+function readyForUpdate() {
+  if (window.NotificationStore.BIsUserInGame()) {
+    log.info("User in game");
+    return false;
+  }
+  if ((interop.getBatteryLevel() < interop.getMinBattery()) && (!interop.getIsCharging())) {
+    log.warning("Battery level low");
+    return false;
+  }
+  return true;
 }
 
 export default definePlugin(() => {
