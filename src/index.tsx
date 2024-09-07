@@ -18,9 +18,9 @@ import { EUpdaterState } from "../deps/protobuf/out/enums_pb";
 import { Cron } from "croner";
 
 // Global variables
-var schedule: any = null;
-var updateTimeout: any = null;
-var updateStateChangeRegistration: any = null;
+var schedule: any = null; // Cron object to start the update
+var updateTimeout: any = null; // 1 hour timeout after update is started
+var updateStateChangeRegistration: any = null; // handle of the update state change registration
 
 function Content() {
   const initializaing = useRef(true);
@@ -105,7 +105,7 @@ function updateSchedule(cronExpression: string,
     log.info("Cron schedule set to: " + cronExpression);
   } catch (e) {
     if (logError) {
-      log.error("Failed to parse cron expression: " + e);
+      log.error("Failed to parse cron expression", e);
     }
   }
 }
