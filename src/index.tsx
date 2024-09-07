@@ -151,9 +151,9 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
       break;
     case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING:
     case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
-    case EUpdaterState.K_EUPDATERSTATE_APPLYING:
       handleUpdateApplicationProgress(updateState);
       break;
+    case EUpdaterState.K_EUPDATERSTATE_APPLYING:
     case EUpdaterState.K_EUPDATERSTATE_CHECKING:
       break;
     default:
