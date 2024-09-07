@@ -150,16 +150,8 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
       applyUpdates(updateState);
       break;
     case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING:
-      handleOsUpdateApplication(updateState);
-      break;
     case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
-      if (readyForUpdate()) {
-        log.info("Pending client restart, restarting...");
-        SteamClient.User.StartRestart();
-      } else {
-        log.info("System not ready for update, skipping...");
-        unregisterUpdateStateChangeRegistration();
-      }
+      handleRestartPending(updateState);
       break;
     case EUpdaterState.K_EUPDATERSTATE_APPLYING:
     case EUpdaterState.K_EUPDATERSTATE_CHECKING:
@@ -169,6 +161,25 @@ function updateStateChangeHandler(protoMsg: Uint8Array): void {
       unregisterUpdateStateChangeRegistration();
       break;
   }
+}
+
+function handleRestartPending(updateState: CMsgSystemUpdateState.AsObject): void {
+  if (!readyForUpdate()) {
+    log.info("System not ready for update, skipping...");
+  } else if (updateState.state == EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING &&
+             updateState.updateApplyResultsList.some(result => result.requiresSystemRestart) &&
+             updateState.supportsOsUpdates) {
+    log.info("Pending system restart, restarting...");
+    SteamClient.System.RestartPC();
+  } else if (updateState.state == EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING &&
+             updateState.updateApplyResultsList.some(result => result.requiresClientRestart)) {
+    log.info("Pending client restart, restarting...");
+    SteamClient.User.StartRestart();
+  } else {
+    log.error("Unexpected update state", updateState);
+  }
+
+  unregisterUpdateStateChangeRegistration();
 }
 
 function applyUpdates(updateState: CMsgSystemUpdateState.AsObject): void {
@@ -196,18 +207,6 @@ function applyUpdates(updateState: CMsgSystemUpdateState.AsObject): void {
   } else {
     log.info("Client update available, applying...");
     SteamClient.Updates.ApplyUpdates("CAE=");
-  }
-}
-
-function handleOsUpdateApplication(updateState: CMsgSystemUpdateState.AsObject): void {
-  if (!readyForUpdate()) {
-    log.info("System not ready for update, skipping...");
-    unregisterUpdateStateChangeRegistration();
-  } else if ((updateState.progress?.stageProgress) && (updateState.progress?.stageProgress >= 100)) {
-    log.info("Pending system restart, restarting...");
-    SteamClient.System.RestartPC();
-  } else {
-    // Update application in progress
   }
 }
 
