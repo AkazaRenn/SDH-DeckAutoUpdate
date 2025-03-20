@@ -1,5 +1,5 @@
 {
-  "name": "deck-auto-update",
+  "name": "sdh-deckautoupdate",
   "version": "0.2.1",
   "description": "A Decky plugin to update the steam client on a scheduled basis",
   "type": "module",

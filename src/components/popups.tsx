@@ -25,5 +25,6 @@ export function confirmPopup(title: ReactNode, text: ReactNode, onOK?: () => voi
       onOK={onOK}
       strOKButtonText={okText}
       strCancelButtonText={cancelText}
-    />)
+    />
+  )
 }

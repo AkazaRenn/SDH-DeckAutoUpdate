@@ -1,30 +1,38 @@
 import { Cron } from "croner";
-import { get_battery_level, get_is_charging } from "./backend";
+import { get_battery_level, get_is_charging, rpm_ostree_update } from "./backend";
 import Config from "./config";
 import Logger from "./logger";
+import Registeration from "../types/registration";
 
 import { EUpdaterType } from "../deps/protobuf/enums_pb";
 import { CMsgSystemUpdateState } from "../deps/protobuf/steammessages_client_objects_pb";
 import { EUpdaterState } from "../deps/protobuf/enums_pb";
 
-export default class UpdateManager {
+class UpdateManager extends Registeration {
+  private readonly osUpdateHandler = {
+    STEAM: "steam",
+    RPM_OSTREE: "rpm-ostree",
+  } as const;
+
   private schedule: Cron | undefined = undefined; // Cron object to start the update
   private updateTimeout: NodeJS.Timeout | undefined = undefined; // 1 hour timeout after update is started
   private updateStateChangeRegistration: Unregisterable | undefined = undefined; // handle of the update state change registration
-  readonly registrations: Array<Unregisterable> = [];
 
-  public constructor() {
-    this.updateSchedule(Config.get("cron"), false);
-  }
-
-  private updateSchedule(cronExpression: string,
-    updateSettings: boolean = true,
-    logError: boolean = true
-  ): void {
-    if (updateSettings) {
-      Config.set("cron", cronExpression);
+  protected _register(): UnregisterFunction {
+    const cronUpdateRegistration = Config.on("cron", this.updateSchedule);
+    const cronStr = Config.get("cron");
+    if (cronStr) {
+      this.updateSchedule(cronStr, false);
     }
 
+    return () => {
+      cronUpdateRegistration.unregister();
+      this.unregisterUpdateStateChangeRegistration();
+      this.updateSchedule("", false);
+    }
+  }
+
+  private updateSchedule(cronExpression: string, logError: boolean = true): void {
     this.schedule?.stop();
     this.schedule = undefined;
     try {
@@ -37,15 +45,15 @@ export default class UpdateManager {
     }
   }
 
-  public unregisterUpdateStateChangeRegistration(): void {
+  private unregisterUpdateStateChangeRegistration = (): void => {
     clearTimeout(this.updateTimeout);
     this.updateTimeout = undefined;
     this.updateStateChangeRegistration?.unregister();
     this.updateStateChangeRegistration = undefined;
   }
 
-  private async checkForUpdates(): Promise<void> {
-    if (this.updateStateChangeRegistration) {
+  private checkForUpdates = async (): Promise<void> => {
+    if (this.updateStateChangeRegistration !== undefined) {
       Logger.info("An update is in progress, skipping...");
       return;
     } else if (!(await this.readyForUpdate())) {
@@ -63,7 +71,7 @@ export default class UpdateManager {
     })
   };
 
-  private updateStateChangeHandler(protoMsg: Uint8Array): void {
+  private updateStateChangeHandler = (protoMsg: Uint8Array): void => {
     try {
       var updateState = CMsgSystemUpdateState.deserializeBinary(protoMsg).toObject();
     } catch (e) {
@@ -131,15 +139,50 @@ export default class UpdateManager {
     }
 
     if (osUpdateAvailable) {
+      const osUpdateHandler = Config.get("os_update_handler");
       Logger.info("OS update availbale, applying...");
-      SteamClient.Updates.ApplyUpdates("CAI=");
+      switch (osUpdateHandler) {
+        case this.osUpdateHandler.STEAM:
+          SteamClient.Updates.ApplyUpdates("CAI=");
+          break;
+        case this.osUpdateHandler.RPM_OSTREE:
+          this.unregisterUpdateStateChangeRegistration();
+          rpm_ostree_update().then((returnCode: number) => {
+            switch (returnCode) {
+              case -1:
+                Logger.error("Failed to update OS");
+                break;
+              case 0:
+                Logger.warning("Updated to the same version somehow");
+                break;
+              case 1:
+                Logger.info("OS updated successfully, pending restart");
+                this.handleRestartPending({
+                  state: EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING,
+                  updateCheckResultsList: [],
+                  updateApplyResultsList: [{
+                    requiresSystemRestart: true,
+                  }],
+                });
+                break;
+              default:
+                Logger.error("Unknown return code: " + returnCode);
+                break;
+            }
+          });
+          break;
+        default:
+          Logger.error("Unknown OS update handler: " + osUpdateHandler);
+          this.unregisterUpdateStateChangeRegistration();
+          break;
+      }
     } else {
       Logger.info("Client update available, applying...");
       SteamClient.Updates.ApplyUpdates("CAE=");
     }
   }
 
-  private async readyForUpdate() {
+  private async readyForUpdate(): Promise<boolean> {
     if (window.NotificationStore.BIsUserInGame()) {
       Logger.info("User in game");
       return false;
@@ -151,3 +194,6 @@ export default class UpdateManager {
     return true;
   }
 }
+
+const updateManager = new UpdateManager();
+export default updateManager;

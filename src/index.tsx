@@ -1,19 +1,19 @@
 import { FaRegArrowAltCircleUp } from "react-icons/fa";
 import { definePlugin } from "@decky/ui";
+import { PLUGIN_NAME } from "./helpers/commonDefs";
 import QuickAccessMenu from "./pages/quickAccessMenu";
+import UpdateManager from "./helpers/updateManager";
 
 export default definePlugin(() => {
-  // const registrations: Array<Unregisterable> = [];
-
-  // registrations.push()
+  const registrations: Array<Unregisterable> = []
+  registrations.push(UpdateManager.register());
 
   return {
-    name: "Deck Auto Update",
+    name: PLUGIN_NAME,
     content: <QuickAccessMenu />,
     icon: <FaRegArrowAltCircleUp />,
     onDismount() {
-      unregisterUpdateStateChangeRegistration();
-      updateSchedule("", false, false);
+      registrations.forEach((registration) => registration.unregister());
     },
   };
 });

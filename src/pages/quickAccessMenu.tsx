@@ -5,18 +5,11 @@ import Config from "../helpers/config";
 
 export default function quickAccessMenu() {
   const [cron] = useState(Config.get("cron"));
-  const [minBattery] = useState(Config.get("min_battery"));
+  const [minBattery, setMinBattery] = useState(Config.get("min_battery"));
 
-  // useEffect(() => {
-  //   const registrations: Array<Unregisterable> = []
-
-  //   registrations.push(Config.on("cron", setCron));
-  //   registrations.push(Config.on("min_battery", setMinBattery));
-
-  //   return () => {
-  //     registrations.forEach((registration) => registration.unregister());
-  //   };
-  // }, []);
+  useEffect(() => {
+    Config.set("min_battery", minBattery);
+  }, [minBattery]);
 
   return (
     <>
@@ -44,13 +37,7 @@ export default function quickAccessMenu() {
             value={Math.max(minBattery, 0)}
             valueSuffix={"%"}
             showValue={true}
-            // onChange={async (value) => {
-            //   setMinBattery(value);
-            //   await backend.setMinBattery(value);
-            // }}
-            onChange={(value: number) => {
-              Config.set("min_battery", value);
-            }}
+            onChange={setMinBattery}
             step={5}
             notchTicksVisible={false}
           />
