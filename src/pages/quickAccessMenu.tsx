@@ -21,7 +21,7 @@ export default function quickAccessMenu() {
               onClick={() =>
                 textInputPopup(
                   "Update Schedule",
-                  "Enter the cron expression, put anything invalid or leave it empty to disable",
+                  cron,
                   (cronText) => Config.set("cron", cronText)
                 )}>
               {cron ? cron : "Add"}

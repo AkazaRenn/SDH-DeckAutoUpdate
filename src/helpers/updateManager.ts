@@ -32,7 +32,7 @@ class UpdateManager extends Registeration {
     }
   }
 
-  private updateSchedule(cronExpression: string, logError: boolean = true): void {
+  private updateSchedule = (cronExpression: string, logError: boolean = true): void => {
     this.schedule?.stop();
     this.schedule = undefined;
     try {
@@ -100,7 +100,7 @@ class UpdateManager extends Registeration {
 
   private handleRestartPending(updateState: CMsgSystemUpdateState.AsObject): void {
     this.readyForUpdate().then((ready) => {
-      if (ready) {
+      if (!ready) {
         Logger.info("System not ready for update, skipping...");
       } else if (updateState.state == EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING &&
         updateState.updateApplyResultsList.some(result => result.requiresSystemRestart) &&
@@ -110,7 +110,7 @@ class UpdateManager extends Registeration {
       } else if (updateState.state == EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING &&
         updateState.updateApplyResultsList.some(result => result.requiresClientRestart)) {
         Logger.info("Pending client restart, restarting...");
-        SteamClient.User.StartRestart();
+        SteamClient.User.StartRestart(false);
       } else {
         Logger.error("Unexpected update state", updateState);
       }

@@ -6,7 +6,8 @@ export declare global {
       ApplyUpdates: (serializeBase64String: string) => Promise<object>;
     };
     User: {
-      StartRestart: () => Promise<void>;
+      // Patched from SteamClient.User.StartRestart() to SteamClient.User.StartShutdown(boolean)
+      StartRestart: (arg: boolean) => Promise<void>;
     };
     System: {
       RestartPC: () => Promise<void>;
