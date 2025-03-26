@@ -3,6 +3,7 @@ import { get_battery_level, get_is_charging, rpm_ostree_update } from "./backend
 import Config from "./config";
 import Logger from "./logger";
 import Registeration from "../types/registration";
+import { MOCK_OS_UPDATE_STATE } from "../helpers/commonDefs";
 
 import { EUpdaterType } from "../deps/protobuf/enums_pb";
 import { CMsgSystemUpdateState } from "../deps/protobuf/steammessages_client_objects_pb";
@@ -110,7 +111,8 @@ class UpdateManager extends Registeration {
       } else if (updateState.state == EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING &&
         updateState.updateApplyResultsList.some(result => result.requiresClientRestart)) {
         Logger.info("Pending client restart, restarting...");
-        SteamClient.User.StartRestart(false);
+        // SteamClient.User.StartRestart(); -> DeckyLoader workaround
+        SteamClient.User.StartShutdown(false);
       } else {
         Logger.error("Unexpected update state", updateState);
       }
@@ -157,13 +159,7 @@ class UpdateManager extends Registeration {
                 break;
               case 1:
                 Logger.info("OS updated successfully, pending restart");
-                this.handleRestartPending({
-                  state: EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING,
-                  updateCheckResultsList: [],
-                  updateApplyResultsList: [{
-                    requiresSystemRestart: true,
-                  }],
-                });
+                this.handleRestartPending(MOCK_OS_UPDATE_STATE);
                 break;
               default:
                 Logger.error("Unknown return code: " + returnCode);
