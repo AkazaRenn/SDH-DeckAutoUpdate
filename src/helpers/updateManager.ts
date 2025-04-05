@@ -33,6 +33,8 @@ class UpdateManager extends Registeration {
       return;
     }
 
+    Logger.info("updateState", updateState);
+
     switch (updateState.state) {
       case EUpdaterState.K_EUPDATERSTATE_INVALID:
         Logger.info("updateState.state K_EUPDATERSTATE_INVALID");
@@ -59,7 +61,7 @@ class UpdateManager extends Registeration {
         Logger.info("updateState.state K_EUPDATERSTATE_ROLLBACK");
         break;
       default:
-        Logger.info("updateState.state UNRECOGNIZED", updateState.state);
+        Logger.info("updateState.state UNRECOGNIZED");
         break;
     }
   }
