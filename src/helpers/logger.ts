@@ -10,22 +10,22 @@ import DeckyLogger from "../deps/decky_logger";
 class Logger extends DeckyLogger {
     async debug(...args: any[]) {
         super.debug(...args);
-        log_debug(args.join(' '));
+        log_debug(args.map(e => e?.toString()).join(' '));
     }
 
     async info(...args: any[]) {
         super.log(...args);
-        log_info(args.join(' '));
+        log_info(args.map(e => e?.toString()).join(' '));
     }
 
     async error(...args: any[]) {
         super.error(...args);
-        log_error(args.join(' '));
+        log_error(args.map(e => e?.toString()).join(' '));
     }
 
     async warning(...args: any[]) {
         super.warn(...args);
-        log_warning(args.join(' '));
+        log_warning(args.map(e => e?.toString()).join(' '));
     }
 }
 

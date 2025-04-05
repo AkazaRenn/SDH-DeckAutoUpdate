@@ -1,7 +1,7 @@
 export declare global {
   const SteamClient: {
     Updates: {
-      RegisterForUpdateStateChanges(callback: (e) => void): object;
+      RegisterForUpdateStateChanges(callback: (e: Uint8Array) => void): object;
       CheckForUpdates: () => Promise<object>;
       ApplyUpdates: (serializeBase64String: string) => Promise<object>;
     };
