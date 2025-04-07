@@ -23,7 +23,11 @@ class Plugin:
 
     async def rpm_ostree_update(self) -> int:
         logger.debug("Executing rpm_ostree_update()")
-        return utils.rpm_ostree_update()
+        return utils.rpm_ostree_update().value
+
+    async def update_decky_loader(self) -> int:
+        logger.debug("Executing update_decky_loader()")
+        return utils.update_decky_loader().value
 
     async def log_debug(self, msg: str):
         logger.debug(msg)

@@ -14,3 +14,16 @@ export const MOCK_OS_UPDATE_STATE: CMsgSystemUpdateState.AsObject = {
     requiresSystemRestart: true,
   }],
 };
+
+export enum UpdateResult {
+  FAIL = -1,
+  UPDATED = 0,
+  NOT_UPDATED = 1,
+}
+
+export enum UpdateStatus {
+  UP_TO_DATE,
+  IN_PROGERSS,
+  OS_RESTART_REQUIRED,
+  CLIENT_RESTART_REQUIRED,
+}

@@ -1,9 +1,11 @@
 import { Cron } from "croner";
-import { get_battery_level, get_is_charging, rpm_ostree_update } from "./backend";
+import { rpm_ostree_update, update_decky_loader } from "./backend";
+import { MOCK_OS_UPDATE_STATE, UpdateResult, UpdateStatus } from "../helpers/commonDefs";
+import { readyForUpdate } from "./utils";
 import Config from "./config";
 import Logger from "./logger";
 import Registeration from "../types/registration";
-import { MOCK_OS_UPDATE_STATE } from "../helpers/commonDefs";
+import RestartManager from "./restartManager";
 
 import { EUpdaterType } from "../deps/protobuf/enums_pb";
 import { CMsgSystemUpdateState } from "../deps/protobuf/steammessages_client_objects_pb";
@@ -47,17 +49,45 @@ class UpdateManager extends Registeration {
   }
 
   private unregisterUpdateStateChangeRegistration = (): void => {
+    RestartManager.steamUpdateStatus = UpdateStatus.UP_TO_DATE;
     clearTimeout(this.updateTimeout);
     this.updateTimeout = undefined;
     this.updateStateChangeRegistration?.unregister();
     this.updateStateChangeRegistration = undefined;
   }
 
+  private async updateDeckyLoader() {
+    const returnCode = await update_decky_loader();
+    switch (returnCode) {
+      case UpdateResult.UPDATED:
+        Logger.info("Decky Loader updated successfully, pending restart");
+        readyForUpdate().then((ready) => {
+          if (ready) {
+            RestartManager.deckyLoaderUpdateStatus = UpdateStatus.CLIENT_RESTART_REQUIRED;
+          } else {
+            Logger.info("System not ready for update, skipping...");
+          }
+        });
+        return;
+      case UpdateResult.FAIL:
+        Logger.error("Failed to update Decky Loader");
+        break;
+      case UpdateResult.NOT_UPDATED:
+        Logger.debug("Decky Loader does not need update");
+        break;
+      default:
+        Logger.error("Unknown return code: " + returnCode);
+        break;
+    }
+
+    RestartManager.deckyLoaderUpdateStatus = UpdateStatus.UP_TO_DATE;
+  }
+
   private checkForUpdates = async (): Promise<void> => {
     if (this.updateStateChangeRegistration !== undefined) {
       Logger.info("An update is in progress, skipping...");
       return;
-    } else if (!(await this.readyForUpdate())) {
+    } else if (!(await readyForUpdate())) {
       Logger.info("System not ready for update, skipping...");
       return;
     }
@@ -66,10 +96,14 @@ class UpdateManager extends Registeration {
     this.updateStateChangeRegistration = SteamClient.Updates.RegisterForUpdateStateChanges(this.updateStateChangeHandler) as Unregisterable;
     // 1 hour timeout for updating, terminate gracefully if it exceeds that time
     this.updateTimeout = setTimeout(this.unregisterUpdateStateChangeRegistration, 60 * 60 * 1000);
+
+    RestartManager.steamUpdateStatus = UpdateStatus.IN_PROGERSS;
+    RestartManager.deckyLoaderUpdateStatus = UpdateStatus.IN_PROGERSS;
     SteamClient.Updates.CheckForUpdates().catch((e: any) => {
-      Logger.error("Failed to check for updates: " + e);
+      Logger.error("Failed to check for updates:", e);
       this.unregisterUpdateStateChangeRegistration();
     })
+    this.updateDeckyLoader();
   };
 
   private updateStateChangeHandler = (protoMsg: Uint8Array): void => {
@@ -84,110 +118,93 @@ class UpdateManager extends Registeration {
     switch (updateState.state) {
       case EUpdaterState.K_EUPDATERSTATE_AVAILABLE:
         this.applyUpdates(updateState);
-        break;
+        return;
       case EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING:
       case EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING:
         this.handleRestartPending(updateState);
-        break;
+        return;
       case EUpdaterState.K_EUPDATERSTATE_APPLYING:
       case EUpdaterState.K_EUPDATERSTATE_CHECKING:
         break;
       default:
         Logger.info("No updates available");
-        this.unregisterUpdateStateChangeRegistration();
         break;
     }
+
+    this.unregisterUpdateStateChangeRegistration();
   }
 
   private handleRestartPending(updateState: CMsgSystemUpdateState.AsObject): void {
-    this.readyForUpdate().then((ready) => {
+    readyForUpdate().then((ready) => {
       if (!ready) {
         Logger.info("System not ready for update, skipping...");
       } else if (updateState.state == EUpdaterState.K_EUPDATERSTATE_SYSTEMRESTARTPENDING &&
         updateState.updateApplyResultsList.some(result => result.requiresSystemRestart) &&
         updateState.supportsOsUpdates) {
         Logger.info("Pending system restart, restarting...");
-        SteamClient.System.RestartPC();
+        RestartManager.steamUpdateStatus = UpdateStatus.OS_RESTART_REQUIRED;
+        return;
       } else if (updateState.state == EUpdaterState.K_EUPDATERSTATE_CLIENTRESTARTPENDING &&
         updateState.updateApplyResultsList.some(result => result.requiresClientRestart)) {
         Logger.info("Pending client restart, restarting...");
-        // SteamClient.User.StartRestart(); -> DeckyLoader workaround
-        SteamClient.User.StartShutdown(false);
+        RestartManager.steamUpdateStatus = UpdateStatus.CLIENT_RESTART_REQUIRED;
+        return;
       } else {
         Logger.error("Unexpected update state", updateState);
       }
-    });
 
-    this.unregisterUpdateStateChangeRegistration();
+      this.unregisterUpdateStateChangeRegistration();
+    });
   }
 
   private applyUpdates(updateState: CMsgSystemUpdateState.AsObject): void {
-    var osUpdateAvailable = false;
-
-    if (updateState.supportsOsUpdates) {
-      for (var checkResult of updateState.updateCheckResultsList) {
-        if (checkResult.available && checkResult.type) {
-          switch (checkResult.type) {
-            case EUpdaterType.K_EUPDATERTYPE_OS:
-            case EUpdaterType.K_EUPDATERTYPE_BIOS:
-            case EUpdaterType.K_EUPDATERTYPE_AGGREGATED:
-              osUpdateAvailable = true;
-              break;
-            default:
-              break;
-          }
-        }
-      }
+    const availableUpdates = updateState.updateCheckResultsList.filter((checkResult) => checkResult.available && checkResult.type != undefined);
+    if (availableUpdates.length === 0) {
+      Logger.info("No updates available");
+      this.unregisterUpdateStateChangeRegistration();
+      return;
     }
 
-    if (osUpdateAvailable) {
-      const osUpdateHandler = Config.get("os_update_handler");
-      Logger.info("OS update availbale, applying...");
-      switch (osUpdateHandler) {
-        case this.osUpdateHandler.STEAM:
-          SteamClient.Updates.ApplyUpdates("CAI=");
-          break;
-        case this.osUpdateHandler.RPM_OSTREE:
-          this.unregisterUpdateStateChangeRegistration();
-          rpm_ostree_update().then((returnCode: number) => {
-            switch (returnCode) {
-              case -1:
-                Logger.error("Failed to update OS");
-                break;
-              case 0:
-                Logger.warning("Updated to the same version somehow");
-                break;
-              case 1:
-                Logger.info("OS updated successfully, pending restart");
-                this.handleRestartPending(MOCK_OS_UPDATE_STATE);
-                break;
-              default:
-                Logger.error("Unknown return code: " + returnCode);
-                break;
-            }
-          });
-          break;
-        default:
-          Logger.error("Unknown OS update handler: " + osUpdateHandler);
-          this.unregisterUpdateStateChangeRegistration();
-          break;
-      }
+    let updateType = EUpdaterType.K_EUPDATERTYPE_INVALID;
+    if (availableUpdates.length > 1) {
+      updateType = EUpdaterType.K_EUPDATERTYPE_AGGREGATED;
     } else {
-      Logger.info("Client update available, applying...");
-      SteamClient.Updates.ApplyUpdates("CAE=");
+      if (availableUpdates[0].type) {
+        updateType = availableUpdates[0].type;
+      } else {
+        Logger.error("Missing update type", updateState);
+        this.unregisterUpdateStateChangeRegistration();
+        return;
+      }
     }
-  }
 
-  private async readyForUpdate(): Promise<boolean> {
-    if (window.NotificationStore.BIsUserInGame()) {
-      Logger.info("User in game");
-      return false;
+    // Workaround for Bazzite, update OS first and leave everything else for then next run
+    const osUpdateAvailable = (updateType !== EUpdaterType.K_EUPDATERTYPE_CLIENT);
+    if (osUpdateAvailable && Config.get("os_update_handler") == this.osUpdateHandler.RPM_OSTREE) {
+      rpm_ostree_update().then((returnCode: number) => {
+        switch (returnCode) {
+          case UpdateResult.FAIL:
+            Logger.error("Failed to update OS");
+            break;
+          case UpdateResult.NOT_UPDATED:
+            Logger.warning("Updated to the same version somehow");
+            break;
+          case UpdateResult.UPDATED:
+            Logger.info("OS updated successfully, pending restart");
+            this.handleRestartPending(MOCK_OS_UPDATE_STATE);
+            break;
+          default:
+            Logger.error("Unknown return code: " + returnCode);
+            break;
+        }
+      });
+      return;
     }
-    if (((await get_battery_level()) < Config.get("min_battery")) && (!(await get_is_charging()))) {
-      Logger.warning("Battery level low");
-      return false;
-    }
-    return true;
+
+    Logger.info("Applying updates of type", updateType);
+    const updateArgString = '\b' + String.fromCharCode(updateType);
+    const updateArg = btoa(updateArgString);
+    SteamClient.Updates.ApplyUpdates(updateArg);
   }
 }
 
