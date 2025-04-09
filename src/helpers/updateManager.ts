@@ -158,28 +158,15 @@ class UpdateManager extends Registeration {
   }
 
   private applyUpdates(updateState: CMsgSystemUpdateState.AsObject): void {
-    const availableUpdates = updateState.updateCheckResultsList.filter((checkResult) => checkResult.available && checkResult.type != undefined);
-    if (availableUpdates.length === 0) {
+    const availableUpdateTypes = updateState.updateCheckResultsList.filter(result => result.available && result.type).map(result => result.type as EUpdaterType);
+    if (availableUpdateTypes.length === 0) {
       Logger.info("No updates available");
       this.unregisterUpdateStateChangeRegistration();
       return;
     }
 
-    let updateType = EUpdaterType.K_EUPDATERTYPE_INVALID;
-    if (availableUpdates.length > 1) {
-      updateType = EUpdaterType.K_EUPDATERTYPE_AGGREGATED;
-    } else {
-      if (availableUpdates[0].type) {
-        updateType = availableUpdates[0].type;
-      } else {
-        Logger.error("Missing update type", updateState);
-        this.unregisterUpdateStateChangeRegistration();
-        return;
-      }
-    }
-
     // Workaround for Bazzite, update OS first and leave everything else for then next run
-    const osUpdateAvailable = (updateType !== EUpdaterType.K_EUPDATERTYPE_CLIENT);
+    const osUpdateAvailable = availableUpdateTypes.some(type => type == EUpdaterType.K_EUPDATERTYPE_OS);
     if (osUpdateAvailable && Config.get("os_update_handler") == this.osUpdateHandler.RPM_OSTREE) {
       rpm_ostree_update().then((returnCode: number) => {
         switch (returnCode) {
@@ -201,8 +188,8 @@ class UpdateManager extends Registeration {
       return;
     }
 
-    Logger.info("Applying updates of type", updateType);
-    const updateArgString = '\b' + String.fromCharCode(updateType);
+    Logger.info("Applying updates of type", availableUpdateTypes);
+    const updateArgString = availableUpdateTypes.map(type => '\b' + String.fromCharCode(type)).join("");
     const updateArg = btoa(updateArgString);
     SteamClient.Updates.ApplyUpdates(updateArg);
   }
