@@ -102,7 +102,12 @@ def _get_decky_loader_branch() -> DeckyLoaderBranch:
 
 
 def update_decky_loader() -> UpdateResult:
-    if _get_available_loader_version() > _get_current_loader_version():
+    latest_version = _get_available_loader_version()
+    logger.info("Latest version: %s", latest_version)
+    current_version = _get_current_loader_version()
+    logger.info("Current version: %s", current_version)
+
+    if latest_version > current_version:
         result = subprocess.run(
             f"curl -L https://github.com/SteamDeckHomebrew/decky-installer/raw/refs/heads/main/cli/decky-updater.sh | sh -s {_get_decky_loader_branch().value}",
             shell=True,
@@ -120,7 +125,7 @@ def update_decky_loader() -> UpdateResult:
     return UpdateResult.NOT_UPDATED
 
 
-def _get_current_loader_version() -> str:
+def _get_current_loader_version() -> Version | None:
     try:
         # Normalize Python-style version to conform to Decky style
         v = Version(importlib.metadata.version("decky_loader"))
@@ -137,13 +142,13 @@ def _get_current_loader_version() -> str:
             version_str += f"-dev{v.post}"
 
         logger.info("Current Decky Loader version: %s", version_str)
-        return version_str
+        return Version(version_str)
     except Exception as e:
         logger.warning("Failed to execute _get_current_loader_version(): %s", str(e))
-        return ""
+        return DEFAULT_VERSION
 
 
-def _get_available_loader_version() -> str:
+def _get_available_loader_version() -> Version:
     try:
         looking_for_pre_release = (
             _get_decky_loader_branch() == DeckyLoaderBranch.PRE_RELEASE
@@ -158,14 +163,14 @@ def _get_available_loader_version() -> str:
                 logger.warning(
                     "Failed to fetch releases from GitHub: %d", response.status
                 )
-                return ""
+                return DEFAULT_VERSION
 
         for release in releases:
             if looking_for_pre_release or (not release.get("prerelease")):
                 logger.info("Latest Decky Loader version: %s", release.get("tag_name"))
-                return release.get("tag_name")
+                return Version(release.get("tag_name"))
 
     except Exception as e:
         logger.warning("Failed to execute _get_available_loader_version(): %s", str(e))
 
-    return ""
+    return DEFAULT_VERSION
