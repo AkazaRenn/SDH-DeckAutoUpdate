@@ -1,4 +1,5 @@
 import { Cron } from "croner";
+import { Unregisterable } from "@decky/ui/dist/globals/steam-client/shared";
 import { rpm_ostree_update, update_decky_loader } from "./backend";
 import { MOCK_OS_UPDATE_STATE, UpdateResult, UpdateStatus } from "../helpers/commonDefs";
 import { readyForUpdate } from "./utils";
@@ -106,9 +107,9 @@ class UpdateManager extends Registeration {
     this.updateDeckyLoader();
   };
 
-  private updateStateChangeHandler = (protoMsg: Uint8Array): void => {
+  private updateStateChangeHandler = (protoMsg: ArrayBuffer): void => {
     try {
-      var updateState = CMsgSystemUpdateState.deserializeBinary(protoMsg).toObject();
+      var updateState = CMsgSystemUpdateState.deserializeBinary(new Uint8Array(protoMsg)).toObject();
     } catch (e) {
       Logger.error("Failed to parse update state: " + e);
       this.unregisterUpdateStateChangeRegistration();

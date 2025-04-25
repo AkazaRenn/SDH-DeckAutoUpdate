@@ -1,3 +1,5 @@
+import { Unregisterable } from "@decky/ui/dist/globals/steam-client/shared";
+
 export default class Observable {
   readonly eventTarget = new EventTarget();
 

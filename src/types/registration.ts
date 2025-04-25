@@ -1,3 +1,5 @@
+import { Unregisterable } from "@decky/ui/dist/globals/steam-client/shared";
+
 export default abstract class Registeration {
   private _registered = false;
   public get registered(): boolean {
