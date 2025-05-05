@@ -76,6 +76,7 @@ jobs:
 
     - name: Release
       uses: softprops/action-gh-release@v2
+      if: github.event_name == 'push'
       with:
         tag_name: ${{ env.TIMESTAMP }}
         prerelease: true
