@@ -3,7 +3,7 @@
   "version": "0.2.1",
   "description": "A Decky plugin to update the steam client on a scheduled basis",
   "type": "module",
-  "packageManager": "pnpm@10.9.0",
+  "packageManager": "pnpm@10.12.3",
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w",
@@ -32,14 +32,14 @@
     "@types/react": "19.0.12",
     "@types/react-dom": "19.0.4",
     "@types/webpack": "^5.28.5",
-    "rollup": "^4.36.0",
-    "typescript": "^5.8.2"
+    "rollup": "^4.45.0",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@decky/api": "^1.1.2",
-    "@decky/ui": "^4.10.0",
+    "@decky/ui": "^4.10.3",
     "async-mutex": "^0.5.0",
-    "croner": "^9.0.0",
+    "croner": "^9.1.0",
     "google-protobuf": "^3.21.4",
     "react-icons": "^5.5.0",
     "tslib": "^2.8.1"

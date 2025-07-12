@@ -22,7 +22,7 @@ def get_battery_level() -> int:
         try:
             with open(battery_path / "capacity", "r") as f:
                 return int(f.read().strip())
-        except Exception as e:
+        except Exception:
             pass
     # No battery system, return an unbearable number
     return 101
@@ -34,7 +34,7 @@ def get_is_charging() -> bool:
         try:
             with open(battery_path / "status", "r") as f:
                 return f.read().strip() != "Discharging"
-        except Exception as e:
+        except Exception:
             pass
     # No battery system, don't worry about it
     return True
@@ -103,9 +103,9 @@ def _get_decky_loader_branch() -> DeckyLoaderBranch:
 
 def update_decky_loader() -> UpdateResult:
     latest_version = _get_available_loader_version()
-    logger.info("Latest version: %s", latest_version)
+    logger.info("Latest Decky Loader version: %s", latest_version)
     current_version = _get_current_loader_version()
-    logger.info("Current version: %s", current_version)
+    logger.info("Current Decky Loader version: %s", current_version)
 
     if latest_version > current_version:
         result = subprocess.run(
@@ -125,24 +125,11 @@ def update_decky_loader() -> UpdateResult:
     return UpdateResult.NOT_UPDATED
 
 
-def _get_current_loader_version() -> Version | None:
+def _get_current_loader_version() -> Version:
     try:
         # Normalize Python-style version to conform to Decky style
-        v = Version(importlib.metadata.version("decky_loader"))
-        if v.major == 0 and v.minor == 0 and v.micro == 0:
-            # We are probably running from source
-            return "dev"
-
-        version_str = f"v{v.major}.{v.minor}.{v.micro}"
-
-        if v.pre:
-            version_str += f"-pre{v.pre[1]}"
-
-        if v.post:
-            version_str += f"-dev{v.post}"
-
-        logger.info("Current Decky Loader version: %s", version_str)
-        return Version(version_str)
+        version = Version(importlib.metadata.version("decky_loader"))
+        return version
     except Exception as e:
         logger.warning("Failed to execute _get_current_loader_version(): %s", str(e))
         return DEFAULT_VERSION
@@ -167,7 +154,6 @@ def _get_available_loader_version() -> Version:
 
         for release in releases:
             if looking_for_pre_release or (not release.get("prerelease")):
-                logger.info("Latest Decky Loader version: %s", release.get("tag_name"))
                 return Version(release.get("tag_name"))
 
     except Exception as e:
