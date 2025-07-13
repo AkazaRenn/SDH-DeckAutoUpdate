@@ -1,5 +1,5 @@
 {
     "log_level": "INFO",
     "cron": "",
-    "min_battery": 50,
+    "min_battery": 50
 }
