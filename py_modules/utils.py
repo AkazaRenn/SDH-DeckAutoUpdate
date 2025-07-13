@@ -40,50 +40,6 @@ def get_is_charging() -> bool:
     return True
 
 
-def rpm_ostree_update() -> UpdateResult:
-    update_result = subprocess.run(
-        ["env", "-u", "LD_LIBRARY_PATH", "rpm-ostree", "update"],
-        capture_output=True,
-        text=True,
-    )
-    logger.debug("rpm-ostree update stdout: %s", update_result.stdout)
-    logger.debug("rpm-ostree update stderr: %s", update_result.stderr)
-    if update_result.returncode != 0:
-        logger.warning(
-            "rpm-ostree update failed with code %d", update_result.returncode
-        )
-        return UpdateResult.FAIL
-
-    status_result = subprocess.run(
-        ["env", "-u", "LD_LIBRARY_PATH", "rpm-ostree", "status", "--json"],
-        capture_output=True,
-        text=True,
-    )
-    if status_result.returncode != 0:
-        logger.warning(
-            "rpm-ostree status failed with code %d", status_result.returncode
-        )
-        return UpdateResult.FAIL
-
-    status = json.loads(status_result.stdout)
-    staged_version = ""
-    booted_version = ""
-    for deployment in status["deployments"]:
-        if deployment["staged"]:
-            staged_version = deployment["version"]
-        elif deployment["booted"]:
-            booted_version = deployment["version"]
-
-    logger.debug(
-        "staged_version: %s, booted_version:%s", staged_version, booted_version
-    )
-    if staged_version <= booted_version:
-        return UpdateResult.NOT_UPDATED
-    else:
-        logger.info("Update available from %s to %s", booted_version, staged_version)
-        return UpdateResult.UPDATED
-
-
 def _get_decky_loader_branch() -> DeckyLoaderBranch:
     try:
         decky_loader_config = Path(
@@ -108,6 +64,7 @@ def update_decky_loader() -> UpdateResult:
     logger.info("Current Decky Loader version: %s", current_version)
 
     if latest_version > current_version:
+        logger.info("Updating Decky Loader")
         result = subprocess.run(
             f"curl -L https://github.com/SteamDeckHomebrew/decky-installer/raw/refs/heads/main/cli/decky-updater.sh | sh -s {_get_decky_loader_branch().value}",
             shell=True,

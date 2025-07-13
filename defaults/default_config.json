@@ -2,5 +2,4 @@
     "log_level": "INFO",
     "cron": "",
     "min_battery": 50,
-    "os_update_handler": "steam"
 }
