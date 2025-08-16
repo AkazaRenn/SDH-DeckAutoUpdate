@@ -118,7 +118,7 @@ class UpdateManager extends Registeration {
         return;
       case EUpdaterState.K_EUPDATERSTATE_APPLYING:
       case EUpdaterState.K_EUPDATERSTATE_CHECKING:
-        break;
+        return;
       default:
         Logger.info("No updates available");
         break;
