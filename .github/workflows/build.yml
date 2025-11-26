@@ -62,12 +62,6 @@ jobs:
         sudo chown -R $(whoami) out
         unzip -l out/*.zip
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: output
-        path: out/*/
-
     - name: Release
       uses: softprops/action-gh-release@v2
       if: github.event_name == 'push'
@@ -75,3 +69,17 @@ jobs:
         tag_name: ${{ env.TIMESTAMP }}
         prerelease: true
         files: out/*.zip
+
+    - name: Unzip plugin
+      run: |
+        for file in out/*.zip; do
+          echo "Unzipping ${file}"
+          unzip -qq "$file" -d out
+        done
+        tree out
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: output
+        path: out/*/
