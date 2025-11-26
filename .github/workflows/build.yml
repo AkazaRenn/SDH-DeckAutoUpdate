@@ -32,13 +32,13 @@ jobs:
 
         package_file="package.json"
 
-        SHA=$(cut -c1-7 <<< "${{ github.event.pull_request.head.sha || github.sha }}")
-        NEW_VERSION="${VERSION}-${SHA}"
+        sha=$(cut -c1-7 <<< "${{ github.event.pull_request.head.sha || github.sha }}")
+        new_version="${VERSION}-${sha}"
 
-        echo "::notice::Going from ${VERSION} to ${NEW_VERSION}"
+        echo "::notice::Going from ${VERSION} to ${new_version}"
 
         tmp=$(mktemp)
-        jq --arg newversion "${NEW_VERSION}" '.version = $newversion' ${package_file} > "${tmp}"
+        jq --arg newversion "${new_version}" '.version = $newversion' ${package_file} > "${tmp}"
         mv "${tmp}" "${package_file}"
 
         echo "::endgroup::"
