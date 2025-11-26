@@ -24,9 +24,9 @@
   "author": "Renn Akaza <https://github.com/AkazaRenn>",
   "license": "GPL Version 2",
   "bugs": {
-    "url": "https://github.com/AkazaRenn/Deck-Auto-Update/issues"
+    "url": "https://github.com/AkazaRenn/SDH-DeckAutoUpdate/issues"
   },
-  "homepage": "hhttps://github.com/AkazaRenn/Deck-Auto-Update#readme",
+  "homepage": "hhttps://github.com/AkazaRenn/SDH-DeckAutoUpdate#readme",
   "devDependencies": {
     "@decky/rollup": "^1.0.2",
     "@types/react": "19.0.12",
